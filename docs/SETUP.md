@@ -26,6 +26,25 @@ npm run build
 
 ## Claude Desktop Configuration
 
+### Option 1: Use Pre-configured File (Recommended)
+
+**Windows:**
+```bash
+copy claude-desktop-config.json %APPDATA%\Claude\claude_desktop_config.json
+```
+
+**macOS:**
+```bash
+cp claude-desktop-config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+**Linux:**
+```bash
+cp claude-desktop-config.json ~/.config/Claude/claude_desktop_config.json
+```
+
+### Option 2: Manual Configuration
+
 1. Open Claude Desktop settings
 2. Navigate to Developer → Model Context Protocol
 3. Add the server configuration:
@@ -34,17 +53,21 @@ npm run build
 {
   "mcpServers": {
     "creative-lens": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/project/src/server-entry.ts", "--silent"],
+      "command": "node",
+      "args": ["C:\\path\\to\\your\\project\\dist\\server-entry.js"],
       "env": {
         "LOG_LEVEL": "error",
+        "NODE_ENV": "production",
         "PERSISTENCE_TYPE": "file",
-        "MAX_SESSIONS": "100"
+        "MAX_SESSIONS": "100",
+        "MCP_OUTPUT_MODE": "silent"
       }
     }
   }
 }
 ```
+
+**Important:** Update the path in `args` to match your system!
 
 4. Restart Claude Desktop
 

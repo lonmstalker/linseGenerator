@@ -3,7 +3,7 @@ import { handleDomainsResource } from './domainsHandler.js';
 import { handleEvolutionPatternsResource } from './evolutionPatternsHandler.js';
 import { handleHybridExamplesResource } from './hybridExamplesHandler.js';
 import { handlePromptsResource } from './promptsHandler.js';
-import { getMockSessionData } from '../../mocks/sessionData.js';
+import { getMockSessionData } from '../../test-utils/sessionData.js';
 
 export async function handleResourceRequest(uri: string): Promise<ResourceContent> {
   const { type, param } = parseResourceUri(uri);

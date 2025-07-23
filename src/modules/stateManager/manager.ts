@@ -74,7 +74,7 @@ export class StateManager {
   }
 
   // Session management
-  createSession(userId: string, initialProblem?: string): Session {
+  createSession(userId: string, initialProblem?: string, sessionId?: string): Session {
     if (this.sessions.size >= this.options.limits.maxSessions) {
       // Remove oldest inactive session
       const oldestSession = Array.from(this.sessions.values())
@@ -85,7 +85,7 @@ export class StateManager {
     }
 
     const session: Session = {
-      id: randomUUID(),
+      id: sessionId || randomUUID(),
       userId,
       startTime: Date.now(),
       lastActivity: Date.now(),

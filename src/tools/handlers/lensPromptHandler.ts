@@ -19,7 +19,8 @@ export async function handleGenerateLensPrompt(args: any, context: ToolContext):
     const sessionMiddleware = createSessionMiddleware(context.stateManager);
     const enrichedArgs = await sessionMiddleware.beforeToolExecution(
       'generate_creative_lens_prompt',
-      args
+      args,
+      { sessionId: args.session_id }
     );
     
     // Generate lens prompts

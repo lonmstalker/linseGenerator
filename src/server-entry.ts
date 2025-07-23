@@ -7,14 +7,16 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CreativeLensServer } from './server.js';
 import { JsonValidator } from './utils/json-validator.js';
+import { ErrorBoundary } from './utils/error-boundary.js';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
 // Determine output mode from environment or CLI args
+// Default to silent mode for MCP servers to prevent stdio pollution
 const OUTPUT_MODE = process.env['MCP_OUTPUT_MODE'] || 
-  (process.argv.includes('--silent') ? 'silent' : 'normal');
+  (process.argv.includes('--verbose') ? 'normal' : 'silent');
 
 /**
  * Configure console output based on mode
@@ -68,6 +70,9 @@ class FilteredStdioTransport extends StdioServerTransport {
  * Main server startup
  */
 async function main() {
+  // Setup global error handlers first
+  ErrorBoundary.setupGlobalHandlers();
+  
   configureOutput();
   
   try {
@@ -78,45 +83,18 @@ async function main() {
     
     await server.connect(transport);
   } catch (error) {
-    // Always log errors to stderr
-    process.stderr.write(`Server error: ${error}\n`);
+    // Only log critical startup errors in production
+    if (process.env.NODE_ENV === 'development') {
+      process.stderr.write(`Server error: ${error}\n`);
+    }
+    // Create a clean error response instead of crashing
+    const errorResponse = ErrorBoundary.createErrorResponse(error);
+    process.stdout.write(JSON.stringify(errorResponse) + '\n');
     process.exit(1);
   }
 }
 
-// Handle process errors with recovery
-let errorCount = 0;
-const MAX_ERRORS = 5;
-
-process.on('uncaughtException', (error) => {
-  errorCount++;
-  process.stderr.write(`Uncaught exception (${errorCount}/${MAX_ERRORS}): ${error}\n`);
-  
-  // Try to recover if under error threshold
-  if (errorCount < MAX_ERRORS) {
-    process.stderr.write('Attempting to recover...\n');
-    // Don't exit, let the server continue
-  } else {
-    process.stderr.write('Too many errors, exiting...\n');
-    process.exit(1);
-  }
-});
-
-process.on('unhandledRejection', (reason) => {
-  errorCount++;
-  process.stderr.write(`Unhandled rejection (${errorCount}/${MAX_ERRORS}): ${reason}\n`);
-  
-  if (errorCount >= MAX_ERRORS) {
-    process.exit(1);
-  }
-});
-
-// Reset error count periodically
-setInterval(() => {
-  if (errorCount > 0) {
-    errorCount = Math.max(0, errorCount - 1);
-  }
-}, 60000); // Every minute
+// Error handling is now managed by ErrorBoundary.setupGlobalHandlers()
 
 // Start server
 main();

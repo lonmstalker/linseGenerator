@@ -1,118 +1,215 @@
 /**
- * JSON validation and sanitization utilities
+ * JSON Validator utility for ensuring valid JSON responses
+ * Helps prevent SyntaxError issues when sending data through stdio transport
  */
 
 export class JsonValidator {
   /**
-   * Safely parse JSON with error handling
+   * Safely parse JSON string with error handling
    */
-  static safeParse<T = any>(data: string): { success: boolean; data?: T; error?: string } {
+  static safeParse(jsonString: string): { success: boolean; data?: any; error?: string } {
     try {
-      // Remove any non-printable characters
-      const cleaned = data.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+      const trimmed = jsonString.trim();
       
-      // Check for common JSON issues
-      if (!cleaned.trim()) {
-        return { success: false, error: 'Empty JSON string' };
+      // Check for common issues
+      if (!trimmed) {
+        return { success: false, error: 'Empty string' };
       }
       
-      // Attempt to parse
-      const parsed = JSON.parse(cleaned);
-      return { success: true, data: parsed };
+      // Check for multiple JSON objects (common error)
+      const firstBrace = trimmed.indexOf('{');
+      const lastBrace = trimmed.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        // Check if there's content after the last closing brace
+        const afterContent = trimmed.substring(lastBrace + 1).trim();
+        if (afterContent && afterContent !== '') {
+          return { 
+            success: false, 
+            error: `Unexpected content after JSON: "${afterContent.substring(0, 20)}..."` 
+          };
+        }
+      }
+      
+      const data = JSON.parse(trimmed);
+      return { success: true, data };
     } catch (error) {
-      // Extract position from error message
-      const posMatch = error.message.match(/position (\d+)/);
-      const position = posMatch ? parseInt(posMatch[1], 10) : -1;
-      
-      // Try to identify the issue
-      if (position > 0 && position < data.length) {
-        const context = data.substring(Math.max(0, position - 20), Math.min(data.length, position + 20));
-        return { 
-          success: false, 
-          error: `JSON parse error at position ${position}: "${context}"` 
-        };
-      }
-      
       return { 
         success: false, 
-        error: error.message || 'Unknown JSON parse error' 
+        error: error instanceof Error ? error.message : 'Unknown parse error' 
       };
     }
   }
   
   /**
-   * Validate JSON-RPC message structure
+   * Sanitize object for JSON serialization
+   * Removes undefined values, circular references, and functions
    */
-  static isValidJsonRpcMessage(data: any): boolean {
+  static sanitize(obj: any): any {
+    const seen = new WeakSet();
+    
+    const sanitizeValue = (value: any): any => {
+      // Handle null
+      if (value === null) return null;
+      
+      // Handle primitives
+      if (typeof value !== 'object') {
+        if (typeof value === 'function' || typeof value === 'undefined') {
+          return null;
+        }
+        if (typeof value === 'symbol') {
+          return value.toString();
+        }
+        if (typeof value === 'bigint') {
+          return value.toString();
+        }
+        // Handle NaN and Infinity
+        if (typeof value === 'number') {
+          if (isNaN(value)) return 'NaN';
+          if (!isFinite(value)) return value > 0 ? 'Infinity' : '-Infinity';
+        }
+        return value;
+      }
+      
+      // Handle circular references
+      if (seen.has(value)) {
+        return '[Circular Reference]';
+      }
+      seen.add(value);
+      
+      // Handle arrays
+      if (Array.isArray(value)) {
+        return value.map(sanitizeValue);
+      }
+      
+      // Handle objects
+      const sanitized: any = {};
+      for (const [key, val] of Object.entries(value)) {
+        const sanitizedValue = sanitizeValue(val);
+        if (sanitizedValue !== undefined) {
+          sanitized[key] = sanitizedValue;
+        }
+      }
+      
+      return sanitized;
+    };
+    
+    return sanitizeValue(obj);
+  }
+  
+  /**
+   * Create a safe JSON response string
+   * Ensures the response can be properly serialized and parsed
+   */
+  static createSafeResponse(data: any): string {
     try {
-      const str = typeof data === 'string' ? data : data.toString();
+      // First sanitize the data
+      const sanitized = this.sanitize(data);
       
-      // Basic structure check
-      if (!str.includes('"jsonrpc"') || !str.includes('"2.0"')) {
+      // Try to serialize
+      const jsonString = JSON.stringify(sanitized);
+      
+      // Validate the result
+      const validation = this.safeParse(jsonString);
+      if (!validation.success) {
+        throw new Error(`Failed to create valid JSON: ${validation.error}`);
+      }
+      
+      return jsonString;
+    } catch (error) {
+      // Fallback to error response
+      const errorResponse = {
+        error: 'Failed to serialize response',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+      
+      // This should always succeed since it's a simple object
+      return JSON.stringify(errorResponse);
+    }
+  }
+  
+  /**
+   * Validate that a string contains exactly one JSON object
+   */
+  static validateSingleJson(str: string): boolean {
+    try {
+      const trimmed = str.trim();
+      
+      // Must start with { or [
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
         return false;
       }
       
-      // Try to parse and validate structure
-      const parsed = this.safeParse(str);
-      if (!parsed.success) {
-        return false;
-      }
+      // Parse to validate
+      JSON.parse(trimmed);
       
-      const msg = parsed.data;
-      return msg.jsonrpc === '2.0' && (msg.method || msg.result !== undefined || msg.error);
+      // Check there's nothing after the JSON
+      const parsed = JSON.parse(trimmed);
+      const reparsed = JSON.stringify(parsed);
+      const secondParse = JSON.parse(reparsed);
+      
+      // If we can parse and reparse without issues, it's valid
+      return true;
     } catch {
       return false;
     }
   }
   
   /**
-   * Sanitize output to ensure valid JSON
+   * Fix common JSON issues
    */
-  static sanitizeForJson(value: any): any {
-    if (value === undefined) return null;
-    if (value === null) return null;
+  static fixCommonIssues(str: string): string {
+    let fixed = str.trim();
     
-    // Handle special number cases
-    if (typeof value === 'number') {
-      if (isNaN(value)) return null;
-      if (!isFinite(value)) return null;
+    // Remove BOM if present
+    if (fixed.charCodeAt(0) === 0xFEFF) {
+      fixed = fixed.slice(1);
     }
     
-    // Handle strings with special characters
-    if (typeof value === 'string') {
-      // Remove control characters
-      return value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    }
+    // Replace smart quotes with regular quotes
+    fixed = fixed
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"');
     
-    // Handle objects recursively
-    if (typeof value === 'object') {
-      if (Array.isArray(value)) {
-        return value.map(item => this.sanitizeForJson(item));
-      }
-      
-      const sanitized: any = {};
-      for (const [key, val] of Object.entries(value)) {
-        sanitized[key] = this.sanitizeForJson(val);
-      }
-      return sanitized;
-    }
+    // Remove trailing commas in objects and arrays
+    fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
     
-    return value;
+    // Fix unquoted keys (simple cases)
+    fixed = fixed.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
+    
+    return fixed;
   }
   
   /**
-   * Create safe JSON response
+   * Check if a chunk is a valid JSON-RPC message
    */
-  static createSafeResponse(data: any): string {
+  static isValidJsonRpcMessage(chunk: any): boolean {
     try {
-      const sanitized = this.sanitizeForJson(data);
-      return JSON.stringify(sanitized, null, 2);
-    } catch (error) {
-      // Fallback to error response
-      return JSON.stringify({
-        error: 'Failed to serialize response',
-        details: error.message
-      }, null, 2);
+      // Convert to string if buffer
+      const str = typeof chunk === 'string' ? chunk : chunk.toString();
+      const trimmed = str.trim();
+      
+      // Must be JSON
+      if (!trimmed.startsWith('{')) {
+        return false;
+      }
+      
+      // Parse and check for JSON-RPC structure
+      const parsed = JSON.parse(trimmed);
+      
+      // Check for JSON-RPC required fields
+      if (parsed.jsonrpc !== '2.0') {
+        return false;
+      }
+      
+      // Must have either result, error, or method
+      if (!('result' in parsed) && !('error' in parsed) && !('method' in parsed)) {
+        return false;
+      }
+      
+      return true;
+    } catch {
+      return false;
     }
   }
 }

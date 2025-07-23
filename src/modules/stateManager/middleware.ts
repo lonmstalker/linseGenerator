@@ -17,11 +17,14 @@ export function createSessionMiddleware(stateManager: StateManager) {
       args: any, 
       context?: MiddlewareContext
     ): Promise<MiddlewareResult> => {
-      let sessionId = context?.sessionId || args.sessionId;
+      let sessionId = context?.sessionId || args.sessionId || args.session_id;
       
       if (!sessionId) {
         const session = stateManager.createSession('anonymous');
         sessionId = session.id;
+      } else if (!stateManager.getSession(sessionId)) {
+        // Create session with provided ID if it doesn't exist
+        stateManager.createSession('anonymous', undefined, sessionId);
       }
       
       // Update last activity

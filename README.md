@@ -21,16 +21,20 @@ The Creative Lens Generator works by:
 
 ## Quick Start
 
-For detailed installation and configuration instructions, see the [Setup Guide](docs/SETUP.md).
-
 ```bash
-# Quick install
+# Install and build
 git clone https://github.com/yourusername/dynamic-creative-lens-generator.git
 cd dynamic-creative-lens-generator
 npm install && npm run build
+
+# Configure Claude Desktop (Windows)
+copy claude-desktop-config.json %APPDATA%\Claude\claude_desktop_config.json
+
+# Configure Claude Desktop (macOS)
+cp claude-desktop-config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-Then configure in Claude Desktop using the provided `claude-desktop-config.json`.
+Then restart Claude Desktop. For detailed setup, see the [Setup Guide](docs/SETUP.md).
 
 ## Usage Examples
 

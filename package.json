@@ -2,7 +2,7 @@
   "name": "dynamic-creative-lens-generator",
   "version": "1.0.0",
   "description": "MCP server that helps Claude generate creative solutions through unique perception lenses",
-  "main": "dist/server.js",
+  "main": "dist/server-entry.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

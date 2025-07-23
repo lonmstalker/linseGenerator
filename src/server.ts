@@ -43,7 +43,10 @@ class Logger {
     if (this.shouldLog(level)) {
       const timestamp = new Date().toISOString();
       // In MCP server context, only output to stderr to avoid breaking JSON protocol
-      console.error(`[${timestamp}] [${level.toUpperCase()}] ${message}`, ...args);
+      // Only log errors to stderr, everything else is suppressed in production
+      if (level === 'error' || process.env.NODE_ENV === 'development') {
+        console.error(`[${timestamp}] [${level.toUpperCase()}] ${message}`, ...args);
+      }
     }
   }
   
@@ -111,24 +114,39 @@ export class CreativeLensServer extends Server {
     this.setupMemoryMonitoring();
     
     // Initialize state manager
-    this.stateManager = new StateManager();
+    try {
+      this.stateManager = new StateManager();
+    } catch (error) {
+      Logger.error('Failed to initialize StateManager:', error);
+      throw error;
+    }
     
     // Initialize modules
-    this.lensGenerator = new LensPromptGenerator();
-    this.ideaEvolution = new IdeaEvolutionAssistant();
-    this.crossPollinator = new CrossPollinator();
+    try {
+      this.lensGenerator = new LensPromptGenerator();
+      this.ideaEvolution = new IdeaEvolutionAssistant();
+      this.crossPollinator = new CrossPollinator();
+    } catch (error) {
+      Logger.error('Failed to initialize modules:', error);
+      throw error;
+    }
     
     // Initialize event bus
     this.eventBus = EventBus.getInstance();
     
     // Initialize tool registry and context
-    this.toolRegistry = new ToolRegistry();
-    this.toolContext = {
-      stateManager: this.stateManager,
-      lensGenerator: this.lensGenerator,
-      ideaEvolution: this.ideaEvolution,
-      crossPollinator: this.crossPollinator
-    };
+    try {
+      this.toolRegistry = new ToolRegistry();
+      this.toolContext = {
+        stateManager: this.stateManager,
+        lensGenerator: this.lensGenerator,
+        ideaEvolution: this.ideaEvolution,
+        crossPollinator: this.crossPollinator
+      };
+    } catch (error) {
+      Logger.error('Failed to initialize tool registry:', error);
+      throw error;
+    }
     
     // Initialize server components
     this.setupHandlers();
@@ -140,6 +158,25 @@ export class CreativeLensServer extends Server {
    */
   private setupHandlers(): void {
     Logger.debug('Setting up request handlers...');
+    
+    // Add global JSON validation for stdio transport
+    const originalWrite = process.stdout.write;
+    process.stdout.write = function(chunk: any, ...args: any[]): boolean {
+      try {
+        // Check if this is JSON data
+        if (typeof chunk === 'string' && chunk.trim().startsWith('{')) {
+          // Validate JSON before sending
+          const validated = JsonValidator.safeParse(chunk);
+          if (!validated.success) {
+            Logger.error('Invalid JSON being sent:', validated.error);
+            Logger.debug('JSON chunk:', chunk.substring(0, 200) + '...');
+          }
+        }
+      } catch (e) {
+        // Ignore validation errors in logging
+      }
+      return originalWrite.apply(process.stdout, [chunk, ...args]);
+    };
     
     // Tool list handler
     this.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -200,7 +237,10 @@ export class CreativeLensServer extends Server {
           response = MemoryGuard.truncateResponse(response);
         }
         
-        return response;
+        // Ensure the response is properly sanitized for JSON
+        const sanitizedResponse = JSON.parse(JsonValidator.createSafeResponse(response));
+        
+        return sanitizedResponse;
       } catch (error) {
         Logger.error(`Error in tool ${name}:`, error);
         
@@ -218,13 +258,18 @@ export class CreativeLensServer extends Server {
         ));
         
         // Return error in MCP format
-        return {
+        const errorResponse = {
           content: [{
             type: 'text',
             text: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`
           }],
           isError: true
         };
+        
+        // Ensure error response is properly sanitized
+        const sanitizedErrorResponse = JSON.parse(JsonValidator.createSafeResponse(errorResponse));
+        
+        return sanitizedErrorResponse;
       }
     });
     
@@ -253,11 +298,16 @@ export class CreativeLensServer extends Server {
           'read'
         ));
         
+        // Ensure content.data is a string for the text field
+        const textContent = typeof content.data === 'string' 
+          ? content.data 
+          : JsonValidator.createSafeResponse(content.data);
+        
         return {
           contents: [{
             uri: content.uri,
             mimeType: content.mimeType,
-            text: JsonValidator.createSafeResponse(content.data)
+            text: textContent
           }]
         };
       } catch (error) {
