@@ -1,0 +1,131 @@
+id: lens-generation-v1
+name: Creative Lens Generation Template
+category: lens
+version: 1.0.0
+template: |
+  ## CREATIVE LENS GENERATION
+  
+  Problem Statement: {{problem}}
+  
+  ### APPROACH
+  Generate creative perspectives by exploring {{domain_count}} different domains.
+  Complexity Level: {{complexity}}
+  
+  ### INSTRUCTIONS
+  1. Analyze the core problem and identify key challenges
+  2. Explore analogies from these domains: {{domains}}
+  3. Generate {{min_ideas}} to {{max_ideas}} creative solutions
+  4. Focus on {{focus_area}} aspects
+  
+  {{#if constraints}}
+  ### CONSTRAINTS
+  {{#each constraints}}
+  - {{this}}
+  {{/each}}
+  {{/if}}
+  
+  {{#if examples_included}}
+  ### EXAMPLES
+  Consider these example approaches:
+  {{#each example_domains}}
+  - {{this.domain}}: {{this.approach}}
+  {{/each}}
+  {{/if}}
+  
+  ### OUTPUT FORMAT
+  Provide solutions in the following structure:
+  - Domain explored
+  - Key insight drawn
+  - Practical application
+  - Expected impact
+  
+variables:
+  - name: problem
+    type: string
+    description: The problem or challenge to address
+    required: true
+    validation:
+      minLength: 10
+      maxLength: 500
+  - name: domain_count
+    type: number
+    description: Number of domains to explore
+    required: false
+    default: 3
+    validation:
+      min: 1
+      max: 10
+  - name: complexity
+    type: string
+    description: Complexity level of solutions
+    required: false
+    default: moderate
+    validation:
+      enum: [simple, moderate, complex, extreme]
+  - name: domains
+    type: array
+    description: Specific domains to explore
+    required: false
+    default: []
+  - name: min_ideas
+    type: number
+    description: Minimum number of ideas to generate
+    required: false
+    default: 3
+  - name: max_ideas
+    type: number
+    description: Maximum number of ideas to generate
+    required: false
+    default: 5
+  - name: focus_area
+    type: string
+    description: Specific aspect to focus on
+    required: false
+    default: innovative
+  - name: constraints
+    type: array
+    description: Constraints to consider
+    required: false
+  - name: examples_included
+    type: boolean
+    description: Whether to include examples
+    required: false
+    default: true
+  - name: example_domains
+    type: array
+    description: Example domain approaches
+    required: false
+    default:
+      - domain: nature
+        approach: biomimicry and natural systems
+      - domain: music
+        approach: rhythm, harmony, and composition
+
+examples:
+  - input:
+      problem: "How to improve team communication in remote work"
+      domain_count: 3
+      complexity: moderate
+      domains: ["orchestra", "beehive", "neural network"]
+    expectedOutput: |
+      Solutions exploring orchestra (coordination), beehive (distributed communication), and neural network (information flow) domains
+    quality: excellent
+  - input:
+      problem: "Reduce plastic waste in packaging"
+      complexity: simple
+      focus_area: sustainable
+    expectedOutput: |
+      Simple sustainable solutions drawing from natural packaging systems
+    quality: good
+
+metadata:
+  author: Creative Lens System
+  created: 1642000000000
+  lastModified: 1642000000000
+  usageCount: 0
+  effectivenessScore: 0
+  tags:
+    - creativity
+    - problem-solving
+    - ideation
+    - cross-domain

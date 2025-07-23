@@ -1,0 +1,71 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022",                                  /* Set the JavaScript language version for emitted JavaScript */
+    "lib": ["ES2022"],                                   /* Specify library files to be included in the compilation */
+    "module": "commonjs",                                /* Specify module code generation */
+    
+    /* Modules Resolution */
+    "moduleResolution": "node",                          /* Specify module resolution strategy */
+    "baseUrl": "./",                                     /* Base directory to resolve non-relative module names */
+    "paths": {                                          /* Path mapping for module aliases */
+      "@modules/*": ["src/modules/*"],
+      "@tools/*": ["src/tools/*"],
+      "@prompts": ["src/prompts/index"],
+      "@prompts/*": ["src/prompts/*"],
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"]
+    },
+    "resolveJsonModule": true,                          /* Enable importing .json files */
+    
+    /* JavaScript Support */
+    "allowJs": false,                                   /* Allow JavaScript files to be compiled */
+    "checkJs": false,                                   /* Report errors in .js files */
+    
+    /* Emit */
+    "outDir": "./dist",                                 /* Redirect output structure to the directory */
+    "rootDir": "./src",                                 /* Specify the root directory of input files */
+    "removeComments": true,                             /* Do not emit comments to output */
+    "noEmitOnError": true,                             /* Do not emit outputs if any errors were reported */
+    "preserveConstEnums": true,                         /* Do not erase const enum declarations in generated code */
+    "sourceMap": true,                                  /* Create source map files for emitted JavaScript files */
+    "inlineSources": true,                              /* Include source code in the sourcemaps */
+    "declaration": true,                                /* Generate .d.ts files from TypeScript and JavaScript files */
+    "declarationMap": true,                             /* Create sourcemaps for d.ts files */
+    
+    /* Interop Constraints */
+    "esModuleInterop": true,                            /* Emit additional JavaScript for importing CommonJS modules */
+    "allowSyntheticDefaultImports": true,               /* Allow 'import x from y' when a module doesn't have default export */
+    "forceConsistentCasingInFileNames": true,          /* Ensure consistent casing in file names */
+    
+    /* Type Checking */
+    "strict": false,                                    /* Enable all strict type-checking options */
+    "noImplicitAny": false,                            /* Enable error reporting for expressions with an implied 'any' type */
+    "strictNullChecks": false,                         /* Take null and undefined into account when type checking */
+    "strictFunctionTypes": false,                       /* Ensure function parameters are checked correctly */
+    "strictBindCallApply": false,                       /* Check that 'bind', 'call', and 'apply' methods match function */
+    "strictPropertyInitialization": false,              /* Check for class properties that are not initialized */
+    "noImplicitThis": false,                           /* Enable error reporting when 'this' is given the type 'any' */
+    "useUnknownInCatchVariables": false,               /* Type catch clause variables as 'unknown' instead of 'any' */
+    "alwaysStrict": true,                              /* Ensure 'use strict' is always emitted */
+    "noUnusedLocals": false,                           /* Enable error reporting when local variables aren't read */
+    "noUnusedParameters": false,                        /* Raise an error when function parameter is not used */
+    "exactOptionalPropertyTypes": false,                /* Differentiate between undefined and not present */
+    "noImplicitReturns": false,                        /* Enable error reporting for missing returns in functions */
+    "noFallthroughCasesInSwitch": true,               /* Enable error reporting for fallthrough cases in switch */
+    "noUncheckedIndexedAccess": false,                 /* Include 'undefined' in index signature results */
+    "noImplicitOverride": false,                       /* Ensure overriding members are marked with override */
+    "noPropertyAccessFromIndexSignature": false,        /* Enforces using indexed accessors */
+    
+    /* Completeness */
+    "skipLibCheck": true                                /* Skip type checking all .d.ts files */
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
+  ]
+}

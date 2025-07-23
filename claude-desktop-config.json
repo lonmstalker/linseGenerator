@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "creative-lens": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "/Users/nikitakocnev/WebstormProjects/linseGenerator/src/server-entry.ts",
+        "--silent"
+      ],
+      "env": {
+        "LOG_LEVEL": "error",
+        "PERSISTENCE_TYPE": "file",
+        "MAX_SESSIONS": "100"
+      }
+    }
+  }
+}

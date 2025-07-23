@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "creative-lens-remote": {
+      "command": "/path/to/scripts/creative-lens-remote.sh",
+      "args": [],
+      "env": {
+        "MCP_REMOTE_USER": "your-username",
+        "MCP_REMOTE_HOST": "your-server.com",
+        "MCP_REMOTE_PATH": "/home/your-username/dynamic-creative-lens-generator",
+        "MCP_SSH_KEY": "~/.ssh/id_rsa"
+      }
+    }
+  }
+}
